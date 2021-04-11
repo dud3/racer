@@ -8,7 +8,11 @@ function roadBuilder(config = {
 }) {
   // Container
 
+  const root = this
+
   var container = document.getElementById(config.containerId);
+
+  this.initCamera = config.initCamera || 'topdown'
 
   // Scene
 
@@ -17,7 +21,10 @@ function roadBuilder(config = {
   // Top-down camera
 
   var camera = new THREE.PerspectiveCamera( 65, container.clientWidth  / container.clientHeight, 0.01, 200 );
-  camera.position.set(0, 22, 0);
+
+  // 500 -> 20
+  // 25 - 1
+  camera.position.set(0, 44, 0);
 
   // Chase camera
 
@@ -26,8 +33,6 @@ function roadBuilder(config = {
   var chaseCamera = new THREE.PerspectiveCamera( 65, container.clientWidth   / container.clientHeight, 0.01, 200 );
 
   var currentCamera = camera;
-
-  if (config.initCamera == 'chase') { currentCamera = chaseCamera; }
 
   // Renderer
 
@@ -42,6 +47,7 @@ function roadBuilder(config = {
   labelRenderer.setSize(container.clientWidth, container.clientHeight);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = container.getBoundingClientRect().top + 'px';
+  labelRenderer.domElement.style.left = container.getBoundingClientRect().left + 'px';
   document.body.appendChild( labelRenderer.domElement );
 
   // Controlls
@@ -171,6 +177,7 @@ function roadBuilder(config = {
       new THREE.BoxBufferGeometry( 0.1, h * 0.2 , 0.1 ),
       new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide, wireframe: true } )
     );
+    // e.follower.visible = false;
     scene.add(e.follower);
 
     const gltdLoader = new THREE.GLTFLoader().setPath('./animation/vehicle/');
@@ -195,7 +202,7 @@ function roadBuilder(config = {
       const moonDiv = document.createElement('div');
         moonDiv.className = 'label';
         moonDiv.textContent = e.id;
-        moonDiv.style.marginTop = '-1em';
+        // moonDiv.style.marginTop = '-1em';
         const moonLabel = new THREE.CSS2DObject(moonDiv);
         moonLabel.position.set(0, 0, 0);
         car.add(moonLabel);
@@ -218,10 +225,6 @@ function roadBuilder(config = {
   }
 
   var theCarsManager = new carsManager();
-  theCarsManager.add(0, 300);
-  theCarsManager.cars[0].activeCamera = true;
-
-  theCarsManager.add(1, 200);
 
   var sysIdx = 8;
 
@@ -250,6 +253,8 @@ function roadBuilder(config = {
         camera.aspect = canvas.clientWidth / canvas.clientHeight;
         camera.updateProjectionMatrix();
       }
+
+      if (root.initCamera == 'chase') { currentCamera = chaseCamera; }
 
       renderer.render(scene, currentCamera);
       labelRenderer.render(scene, currentCamera);

@@ -2,8 +2,8 @@
   <q-page class="row col-12 q-pa-md">
     <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-xs-12 text-center">
         <div class="q-pr-md q-pl-md">
-          <div id="container" class="container"></div>
-          <div id="container1" class="container"></div>
+          <div id="container1" class="container q-mb-lg"></div>
+          <div id="container" class="container q-mb-lg"></div>
         </div>
     </div>
     <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-xs-12">
@@ -152,36 +152,42 @@ export default {
         queue: {},
         events: [],
 
+        simulation: {
+          topdown: undefined,
+          chase: undefined
+        },
+
         loading: false
     }
   },
 
   created () {
-    this.loading = true
-
+    this.$q.loading.show()
     this.main().then(() => {
-      this.loading = false
-
-      console.warn('Animation modules loaded.')
-
-      var road0 = new window.roadBuilder({
-        containerId: 'container',
-        initCamera: 'chase',
-        visible: {
-          cars: true,
-          grid: true
-        }
-      });
-
-      var road1 = new window.roadBuilder({
-        containerId: 'container1',
-        initCamera: 'topdown',
-        visible: {
-          cars: false,
-          grid: false
-        }
-      })
+      this.$q.loading.hide()
     }).catch(() => { this.loading = false })
+  },
+
+  mounted () {
+    /*
+    this.simulation.chase = new window.roadBuilder({
+      containerId: 'container',
+      initCamera: 'chase',
+      visible: {
+        cars: true,
+        grid: true
+      }
+    });
+    */
+
+    this.simulation.topdown = new window.roadBuilder({
+      containerId: 'container1',
+      initCamera: 'topdown',
+      visible: {
+        cars: false,
+        grid: false
+      }
+    })
   },
 
   methods: {
@@ -198,6 +204,15 @@ export default {
               this.queue.nodes.sort((a, b) => parseInt(b.funds) - parseInt(a.funds)).map((e, i) => {
                 e.position = i + 1
               })
+
+              console.log(this.simulation.topdown)
+
+              this.queue.nodes.slice(0, 20).sort((a, b) => parseInt(a.funds) - parseInt(b.funds)).map(node => {
+                this.simulation.topdown.theCarsManager.add(node.position, node.funds)
+                // this.simulation.chase.theCarsManager.add(node.position, node.funds)
+              })
+
+              // this.simulation.chase.theCarsManager.cars[0].activeCamera = true
 
               // r.position = Math.floor(Math.random() * this.queue.nodes.length)
 
@@ -226,8 +241,9 @@ export default {
      display: block;
   }
   .label {
-    padding: 12px;
+    padding: 8px;
     background-color: #7cb3ff;
     border-radius: 50%;
+    border: 1px solid #000;
   }
 </style>
