@@ -18,29 +18,60 @@ function roadBuilder(config = {
 
   var scene = new THREE.Scene();
 
+  // ...
+
+  let FOV
+  let FAR
+  let NEAR = 400
+
+  // Mobile camera
+  if (container.clientWidth <= 768) {
+    FOV = 50
+    FAR = 1200
+    // 769px - 1080px screen width camera
+  } else if (container.clientWidth >= 769 && container.clientWidth <= 1080) {
+    FOV = 50
+    FAR = 1475
+    // > 1080px screen width res camera
+  } else {
+    FOV = 40
+    FAR = 1800
+  }
+
+  console.log(FOV, NEAR, FAR, container.clientWidth/container.clientHeight)
+
   // Top-down camera
 
-  var camera = new THREE.PerspectiveCamera( 65, container.clientWidth  / container.clientHeight, 0.01, 200 );
+  var camera = new THREE.PerspectiveCamera(FOV, container.clientWidth  / container.clientHeight, 35, 38);
 
   // 500 -> 20
   // 25 - 1
-  camera.position.set(0, 44, 0);
+  camera.position.set(0, 36, 0);
 
   // Chase camera
 
-  var SCREEN_WIDTH = container.clientWidth  , SCREEN_HEIGHT = container.clientHeight;
-  var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
-  var chaseCamera = new THREE.PerspectiveCamera( 65, container.clientWidth   / container.clientHeight, 0.01, 200 );
+  var chaseCamera = new THREE.PerspectiveCamera(FOV, container.clientWidth/container.clientHeight, 3, 6);
+
+  //  65, container.clientWidth   / container.clientHeight, 0.01, 200
+  // chaseCamera.aspect = container.innerWidth/container.innerHeight;
+  // chaseCamera.updateProjectionMatrix();
 
   var currentCamera = camera;
 
   // Renderer
 
-  var renderer = new THREE.WebGLRenderer( { antialias: true } );
+  let pixelRatio = window.devicePixelRatio
+  let AA = true
+  if (pixelRatio > 1) {
+    AA = false
+  }
+
+  var renderer = new THREE.WebGLRenderer( { antialias: AA, powerPreference: "high-performance" } );
   renderer.setSize( container.clientWidth , container.clientHeight );
   renderer.setClearColor(0x4576BA, 0.4);
 
-  renderer.setSize(container.offsetWidth, container.offsetHeight);
+  // renderer.setSize(container.offsetWidth, container.offsetHeight);
+
   container.appendChild( renderer.domElement );
 
   var labelRenderer = new THREE.CSS2DRenderer();
@@ -48,7 +79,8 @@ function roadBuilder(config = {
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = container.getBoundingClientRect().top + 'px';
   labelRenderer.domElement.style.left = container.getBoundingClientRect().left + 'px';
-  document.body.appendChild( labelRenderer.domElement );
+  labelRenderer.domElement.id = 'label-renderer-' + config.containerId;
+  document.body.appendChild(labelRenderer.domElement);
 
   // Controlls
 
@@ -112,12 +144,12 @@ function roadBuilder(config = {
   var material = [
       new THREE.MeshBasicMaterial( { color: 0x385b8d, side: THREE.DoubleSide, wireframe: false } ),
       new THREE.MeshBasicMaterial( { color: 0x000000, side: THREE.DoubleSide, wireframe: false } ),
-      new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
-      new THREE.MeshBasicMaterial( { color: 0x000000, side: THREE.DoubleSide, wireframe: false } ),
       // new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
-      new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
+      new THREE.MeshBasicMaterial( { color: 0x000000, side: THREE.DoubleSide, wireframe: false } ),
+      // // new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
+      // new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
       new THREE.MeshBasicMaterial( { color: 0x000000, side: THREE.DoubleSide } ),
-      new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
+      // // new THREE.MeshBasicMaterial( { map: tex, side: THREE.DoubleSide } ),
       new THREE.MeshBasicMaterial( { color: 0x000000, side: THREE.DoubleSide, wireframe: false } ),
       new THREE.MeshBasicMaterial( { color: 0x385b8d, side: THREE.DoubleSide, wireframe: false } ),
   ];
@@ -128,14 +160,6 @@ function roadBuilder(config = {
   // ---
 
   var h = 0.08;
-
-  var blueCar = new THREE.Mesh(
-    new THREE.BoxBufferGeometry( 0.12, h * 1.9, 0.4 ),
-    new THREE.MeshBasicMaterial( { color: 0x0000ff, side: THREE.DoubleSide, wireframe: true  } )
-  );
-  scene.add( blueCar );
-  var blueCarIdx = 0;
-  var blueCarX, blueCarY, blueCarZ;
 
   var gTngt = new THREE.BufferGeometry( ); // tangent
   gTngt.positions = new Float32Array( 6 );
@@ -259,7 +283,7 @@ function roadBuilder(config = {
       renderer.render(scene, currentCamera);
       labelRenderer.render(scene, currentCamera);
 
-      if (t2 - t1 > 0.04) {
+      if (t2 - t1 > 0.02) {
 
           // other: take tangent, binormal for calculation
 
@@ -280,19 +304,6 @@ function roadBuilder(config = {
               car.distance += car.increment;
             }
           });
-
-          blueCarX = gRoad.points[ blueCarIdx ].x + gRoad.n[ blueCarIdx ].x * trackDistances[ 1 ] * 0.6;
-          blueCarY = gRoad.points[ blueCarIdx ].y + h;
-          blueCarZ = gRoad.points[ blueCarIdx ].z + gRoad.n[ blueCarIdx ].z * trackDistances[ 1 ] * 0.6;
-
-          blueCar.position.set( blueCarX, blueCarY, blueCarZ );
-
-          blueCar.rotation.y = 1.57 + Math.atan2( -gRoad.t[ blueCarIdx ].z, gRoad.t[ blueCarIdx ].x );
-          // other: take tangent, binormal for calculation
-
-          blueCarIdx += 2;
-
-          if ( blueCarIdx >= gRoad.points.length) blueCarIdx = 0;
 
           gTngt.positions[0] = gRoad.points[ sysIdx ].x;  // tangent
           gTngt.positions[1] = gRoad.points[ sysIdx ].y;
@@ -333,7 +344,7 @@ function roadBuilder(config = {
 
           if (activeCamera) {
             if (activeCamera.mesh) {
-              var relativeCameraOffset = new THREE.Vector3(1, 1, 0); // THREE.Vector3(0, 0.2, -0.2);
+              var relativeCameraOffset = new THREE.Vector3(3, 3, 0); // THREE.Vector3(0, 0.2, -0.2);
               var cameraOffset = relativeCameraOffset.applyMatrix4( activeCamera.follower.matrixWorld );
 
               chaseCamera.position.x = relativeCameraOffset.x;

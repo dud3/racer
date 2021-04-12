@@ -2,8 +2,12 @@
   <q-page class="row col-12 q-pa-md">
     <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-xs-12 text-center">
         <div class="q-pr-md q-pl-md">
-          <div id="container1" class="container q-mb-lg"></div>
-          <div id="container" class="container q-mb-lg"></div>
+          <div id="container" class="container" v-show="show.topdown" style="position: relative">
+            <q-btn @click="swapCanvas();" icon="zoom_in" dense flat style="z-index: 99999999; font-weight:bold; text-align:right;position: absolute;bottom: 10px; right: 10px;" class="text-white" v-show="show.topdown" />
+          </div>
+          <div id="container1" class="container" v-show="show.chase" style="position: relative">
+            <q-btn @click="swapCanvas();" icon="zoom_out" dense flat style="z-index: 99999999; font-weight:bold; text-align:right;position: absolute;bottom: 10px; right: 10px;" class="text-white" v-show="show.chase" />
+          </div>
         </div>
     </div>
     <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12 col-xs-12">
@@ -157,6 +161,13 @@ export default {
           chase: undefined
         },
 
+        show: {
+          chase: true,
+          topdown: true
+        },
+
+        initcanvas2: false,
+
         loading: false
     }
   },
@@ -169,19 +180,8 @@ export default {
   },
 
   mounted () {
-    /*
     this.simulation.chase = new window.roadBuilder({
       containerId: 'container',
-      initCamera: 'chase',
-      visible: {
-        cars: true,
-        grid: true
-      }
-    });
-    */
-
-    this.simulation.topdown = new window.roadBuilder({
-      containerId: 'container1',
       initCamera: 'topdown',
       visible: {
         cars: false,
@@ -191,6 +191,41 @@ export default {
   },
 
   methods: {
+    swapCanvas () {
+      this.$q.loading.show()
+
+      this.show.topdown = !this.show.topdown
+      this.show.chase = !this.show.topdown
+
+      const c = document.getElementById('label-renderer-container')
+      const c1 = document.getElementById('label-renderer-container1')
+
+      document.getElementById('label-renderer-container').style.display = this.show.topdown ? 'block' : 'none'
+      if (c1) { c1.style.display = !this.show.topdown ? 'block' : 'none' }
+
+      setTimeout(() => {
+        if (!this.initcanvas2) {
+          this.simulation.topdown = new window.roadBuilder({
+            containerId: 'container1',
+            initCamera: 'chase',
+            visible: {
+              cars: true,
+              grid: false
+            }
+          })
+
+          this.queue.nodes.slice(0, 24).sort((a, b) => parseInt(a.funds) - parseInt(b.funds)).map((node, i) => {
+            this.simulation.topdown.theCarsManager.add(node.position, node.funds * i)
+          })
+
+          this.simulation.topdown.theCarsManager.cars[0].activeCamera = true
+
+          this.initcanvas2 = true
+        }
+
+        this.$q.loading.hide()
+      }, 400)
+    },
     main () {
         return new Promise((resolve, reject) => {
             http({ method: 'get', url: '/queue' }).then((r) => {
@@ -207,12 +242,11 @@ export default {
 
               console.log(this.simulation.topdown)
 
-              this.queue.nodes.slice(0, 20).sort((a, b) => parseInt(a.funds) - parseInt(b.funds)).map(node => {
-                this.simulation.topdown.theCarsManager.add(node.position, node.funds)
-                // this.simulation.chase.theCarsManager.add(node.position, node.funds)
+              this.queue.nodes.slice(0, 24).sort((a, b) => parseInt(a.funds) - parseInt(b.funds)).map((node, i) => {
+                this.simulation.chase.theCarsManager.add(node.position, node.funds * i)
               })
 
-              // this.simulation.chase.theCarsManager.cars[0].activeCamera = true
+              window.simulation = this.simulation
 
               // r.position = Math.floor(Math.random() * this.queue.nodes.length)
 
